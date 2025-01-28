@@ -16,7 +16,7 @@ def localmaxima(signal):
 
     return maxima_indices
 
-def threshold_crossings(signal, threshold, direction="both"):
+def crossings(signal, threshold, dir="both"):
 
     # Convert signal to a NumPy array
     signal = np.asarray(signal)
@@ -25,13 +25,13 @@ def threshold_crossings(signal, threshold, direction="both"):
     crossings = []
 
     # Compute the conditions for each direction
-    if direction == "negpos":
+    if dir == "negpos":
         # Crossing from below to above or equal
         crossings = np.where((signal[:-1] < threshold) & (signal[1:] >= threshold))[0] + 1
-    elif direction == "posneg":
+    elif dir == "posneg":
         # Crossing from above or equal to below
         crossings = np.where((signal[:-1] >= threshold) & (signal[1:] < threshold))[0] + 1
-    elif direction == "both":
+    elif dir == "both":
         # Crossing in either direction
         negpos_crossings = np.where((signal[:-1] < threshold) & (signal[1:] >= threshold))[0] + 1
         posneg_crossings = np.where((signal[:-1] >= threshold) & (signal[1:] < threshold))[0] + 1

@@ -1,5 +1,6 @@
 import numpy as np
 from trig import *
+import matplotlib.pyplot as plt
 
 def erb(f):
     return 24.7*((4.37 * f)/1001)
@@ -8,9 +9,9 @@ def bandwidth(f):
     return 1.019 * erb(f)
 
 def gammatone(t, f=1.0, n=4, d=0.0, a=1.0):
-    t = np.maximum(t,0) # t >= 0
+    t = np.maximum(t, 0) # t >= 0
     b = bandwidth(f)
-    return a * (t**(n-1)) * np.exp(-2 * np.pi * b * t) * sinewave(t, f, np.pi/2) #cosine is 2 pi
+    return a * (t**(n-1)) * np.exp(-2 * np.pi * b * t) * coswave(t, f, d)
 
 def gammatone_norm(f=1.0, n=4, fs=1000):
     t = np.linspace(0, 0.1, int(0.1 * fs))  # 0 to 0.1 seconds
