@@ -25,7 +25,7 @@ def gabor_norm(f, sigma, fs, d=0):
 
     #Get g(t) values
     g_values = gaussian_envelope(t, sigma) * coswave(t, f, d)
-    energy = np.trapz(g_values**2, t)
+    energy = np.trapezoid(g_values**2, t)
 
     return 1 / np.sqrt(energy)
 
@@ -42,7 +42,7 @@ def gabore_norm(f, sigma, fs, d=0):
     #Get g(t) values
     # Custom Sine function will be equivelent to cos if phi = pi/4
     g_values = gaussian_envelope(t, sigma) * coswave(t, f, d)
-    energy = np.trapz(g_values**2, t)
+    energy = np.trapezoid(g_values**2, t)
 
     return 1 / (np.sqrt(energy))
 
@@ -59,7 +59,7 @@ def gaboro_norm(f, sigma, fs, d=0):
     #Get g(t) values
     # Custom Sine function will be equivelent to cos if phi = pi/4
     g_values = gaussian_envelope(t, sigma) * sinewave(t, f, d)
-    energy = np.trapz(g_values**2, t)
+    energy = np.trapezoid(g_values**2, t)
 
     return 1 / np.sqrt(energy)
 
