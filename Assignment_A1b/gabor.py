@@ -8,7 +8,7 @@ def gabor(t, sigma, f, phi=0, a=1):
     return a * gaussian_envelope(t, sigma) * coswave_phi(t, f, phi)
 
 def gaboro(t, sigma, f, phi=0, a=1):
-    return a * gaussian_envelope(t, sigma) * sinwave_phi(t, f, phi)
+    return -1* a * gaussian_envelope(t, sigma) * sinwave_phi(t, f, phi)
 
 def gabore(t, sigma, f, phi=0, a=1):
     return gabor(t , sigma, f, phi, a)
@@ -19,7 +19,7 @@ def gabor_norm(f, sigma, fs, d=0):
     """
 
     # Calculate t vector
-    t_range = 3 * sigma 
+    t_range = 100 * sigma 
     num_samples = int(2 * t_range * fs)
     t = np.linspace(-t_range, t_range, num_samples)
 
@@ -35,16 +35,17 @@ def gabore_norm(f, sigma, fs, d=0):
     """
 
     # Calculate t vector
-    t_range = 3 * sigma 
+    t_range = 100 * sigma 
     num_samples = int(2 * t_range * fs)
     t = np.linspace(-t_range, t_range, num_samples)
 
     #Get g(t) values
     # Custom Sine function will be equivelent to cos if phi = pi/4
     g_values = gaussian_envelope(t, sigma) * coswave(t, f, d)
-    energy = np.trapezoid(g_values**2, t)
+    norm_L2 = np.linalg.norm(g_values, ord=2)
+    
 
-    return 1 / (np.sqrt(energy))
+    return norm_L2
 
 def gaboro_norm(f, sigma, fs, d=0):
     """
@@ -52,17 +53,18 @@ def gaboro_norm(f, sigma, fs, d=0):
     """
 
     # Calculate t vector
-    t_range = 3 * sigma 
+    t_range = 100 * sigma 
     num_samples = int(2 * t_range * fs)
     t = np.linspace(-t_range, t_range, num_samples)
 
     #Get g(t) values
     # Custom Sine function will be equivelent to cos if phi = pi/4
     g_values = gaussian_envelope(t, sigma) * sinewave(t, f, d)
-    energy = np.trapezoid(g_values**2, t)
 
-    return 1 / np.sqrt(energy)
+    norm_L2 = np.linalg.norm(g_values, ord=2)
+    
 
+    return norm_L2
 
 
 # Initial Implementations, not using samping frequency

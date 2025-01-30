@@ -1,9 +1,9 @@
 import numpy as np
 from trig import *
-import matplotlib.pyplot as plt
+
 
 def erb(f):
-    return 24.7*((4.37 * f)/1001)
+    return 24.7*(((4.37 * f)/1000)+1)
 
 def bandwidth(f):
     return 1.019 * erb(f)
