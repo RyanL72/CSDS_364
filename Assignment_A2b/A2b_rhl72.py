@@ -42,7 +42,7 @@ def poisson_pdf(n, lambd, T):
     """
     mu = lambd * T
 
-    poisson = ((mu**n)/(np.math.factorial(n))) * math.exp(-mu)
+    poisson = ((mu**n)/(math.factorial(n))) * math.exp(-mu)
 
     return poisson
 
@@ -81,7 +81,8 @@ def poisson_pdf_mu(n, mu):
     """
     Compute Poisson probability for n events given a mean mu.
     """
-    return (mu**n / np.math.factorial(n)) * np.exp(-mu)
+    return (mu**n / math.factorial(n)) * np.exp(-mu)
+    
 
 def detection_probability(K, lambd=40, T=0.1):
     """
