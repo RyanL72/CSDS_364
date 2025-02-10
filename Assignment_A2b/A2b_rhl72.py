@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import math
+from scipy.stats import poisson
+
 
 def randtimes(N, t1, t2):
     """
@@ -39,9 +42,10 @@ def poisson_pdf(n, lambd, T):
     """
     mu = lambd * T
 
-    poisson = ((mu**n)/(np.math.factorial(n))) * np.exp(-mu)
+    poisson = ((mu**n)/(np.math.factorial(n))) * math.exp(-mu)
 
     return poisson
+
 
 def detectionprob(K, lambd=40, T=0.1):
     """
@@ -49,7 +53,11 @@ def detectionprob(K, lambd=40, T=0.1):
     """
 
     mu = lambd * T
-    return 1-poisson_pdf(K-1, mu, T) 
+
+    if(K <=0):
+        return 1
+
+    return 1.0 - poisson.cdf(K-1, mu) 
 
 def lightflash(lambd, t1=0.8, t2=2.2):
     """
