@@ -6,3 +6,5 @@ CWRU Computational Perception Spring 2025
 - ### Functions
     - Gabor Functions
     - Gammatone Functions 
+## A2
+- ### A2b Probabalistic Photon Detection 
