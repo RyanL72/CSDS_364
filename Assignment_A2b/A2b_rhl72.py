@@ -22,3 +22,14 @@ def plotflash(times):
     plt.ylabel('Event Height')
     plt.title('Stem Plot of Random Times')
     plt.show()
+
+def randintervals(N, lambd, t1):
+    """
+    Generate N random time intervals from t1 with lambda rate.
+    """
+    intervals = np.random.exponential(scale=1.0/lambd, size = N)
+
+    event_times = t1 + np.cumsum(intervals)
+    
+    return event_times
+
