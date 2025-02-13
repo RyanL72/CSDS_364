@@ -15,12 +15,12 @@ def genwaveform(N=100, alpha=0.1, A=1, mu=0, sigma=1, noisetype='Gaussian'):
     events = (np.random.rand(N) < alpha).astype(int)
     
     # Scale them up to A
-    events*=A
+    events*=A*np.random.choice([-1,1], size=N)
 
     ## Generate Noise
 
     if noisetype == 'Gaussian':
-        noise = np.random.uniform(mu - sigma/2, mu + sigma/2, N)  
+        noise = np.random.normal(mu, sigma, N)  
     elif noisetype == 'Uniform':
         noise = np.random.uniform(mu - sigma/2, mu + sigma/2, N)  
     else:
@@ -30,7 +30,7 @@ def genwaveform(N=100, alpha=0.1, A=1, mu=0, sigma=1, noisetype='Gaussian'):
 
     wave = noise + events
 
-    return wave
+    return wave, np.where(events != 0)[0]
 
 
     
