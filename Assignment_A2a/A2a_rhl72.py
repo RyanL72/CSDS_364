@@ -3,139 +3,137 @@ import matplotlib.pyplot as plt
 from collections import namedtuple
 import scipy.stats as stats
 
-
 def genwaveform(N=100, alpha=0.1, A=1, mu=0, sigma=1, noisetype='Gaussian'):
     """
-    Generates a wave with 
-    N ~ Length of time.
-    alpha ~ Event probability of an event.
-    A ~ Amplitude of event.
-    mu ~ Center of wave.
-    sigma ~ Noise Standard Deviation.
-    noisetype ~ Gaussian or Uniform.
+    Generates a waveform with:
+    - N: length of time.
+    - alpha: probability of an event at each sample.
+    - A: magnitude of event (always positive).
+    - mu: center of the noise distribution.
+    - sigma: noise standard deviation.
+    - noisetype: 'Gaussian' or 'Uniform'.
     """
-
-    ## Generate Signal locations
+    # Generate signal locations (1 indicates an event, 0 no event)
     events = (np.random.rand(N) < alpha).astype(int)
     
-    # Scale them up to A
-    events*=A*np.random.choice([-1,1], size=N)
-
-    ## Generate Noise
-
-    if noisetype == 'Gaussian':
-        noise = np.random.normal(mu, sigma, N)  
-    elif noisetype == 'Uniform':
-        noise = np.random.uniform(mu - sigma/2, mu + sigma/2, N)  
-    else:
-        print("Unsuppported Noise Type: {noisetype}")
+    # Multiply by A (always positive, since we use np.random.choice([1], ...))
+    events *= A * np.random.choice([1], size=N)
     
-    ## Create wave by adding them
-
+    # Generate noise
+    if noisetype == 'Gaussian':
+        noise = np.random.normal(mu, sigma, N)
+    elif noisetype == 'Uniform':
+        noise = np.random.uniform(mu - sigma/2, mu + sigma/2, N)
+    else:
+        raise ValueError(f"Unsupported Noise Type: {noisetype}")
+    
+    # Create the waveform by adding the events and noise
     wave = noise + events
 
     return wave, np.where(events != 0)[0]
 
 
 def plot_waveform(N=100, alpha=0.1, A=1, mu=0, sigma=1, noisetype='Gaussian', threshold=None):
-
+    """
+    Generates and plots the waveform with event markers.
+    If a threshold is provided, a dotted horizontal line is drawn at that level.
+    """
     # Generate waveform and event indices
     wave, event_indices = genwaveform(N, alpha, A, mu, sigma, noisetype)
-
+    
     # Create the plot
     plt.figure(figsize=(10, 4))
     plt.plot(wave, label=f'Waveform (Noise: {noisetype})', color='b')
-
-    # Plot event markers (red dots)
     plt.scatter(event_indices, wave[event_indices], color='red', label="Events", marker='o')
-
-    # Add threshold lines if specified
+    
+    # Add a single threshold line if specified (only positive threshold needed)
     if threshold is not None:
         plt.axhline(threshold, color='green', linestyle="dotted")
-        plt.axhline(-threshold, color='green', linestyle="dotted")
-
-    # Labels and title
+    
     plt.xlabel("Time")
     plt.ylabel("Amplitude")
-    plt.title(f"Generated Waveform with Amplidtude {A}")
+    plt.title(f"Generated Waveform with Magnitude {A}")
     plt.legend()
     plt.grid()
     plt.show()
 
 
+def crossings(signal, threshold, dir="both"):
+    """
+    Finds the indices where the signal crosses the threshold.
+    For positive event detection, only "negpos" (rising) crossings are used.
+    """
+    signal = np.asarray(signal)
+    
+    if dir == "negpos":
+        # Crossing from below to above or equal to threshold
+        cross_idx = np.where((signal[:-1] < threshold) & (signal[1:] >= threshold))[0] + 1
+    elif dir == "posneg":
+        # Crossing from above or equal to below threshold
+        cross_idx = np.where((signal[:-1] >= threshold) & (signal[1:] < threshold))[0] + 1
+    elif dir == "both":
+        negpos = np.where((signal[:-1] < threshold) & (signal[1:] >= threshold))[0] + 1
+        posneg = np.where((signal[:-1] >= threshold) & (signal[1:] < threshold))[0] + 1
+        cross_idx = np.sort(np.concatenate((negpos, posneg)))
+    else:
+        raise ValueError("Invalid direction. Must be 'negpos', 'posneg', or 'both'.")
+    
+    return cross_idx
+
 
 def detectioncounts(si, y, theta):
     """
-    - A named tuple with (TP, FN, FP, TN).
+    Computes the detection counts for a given threshold theta.
+    
+    Parameters:
+    - si: indices where true events occur.
+    - y: observed waveform.
+    - theta: detection threshold.
+    
+    Returns:
+    - A named tuple (TP, FN, FP, TN) where:
+        TP: true positives (events correctly detected),
+        FN: false negatives (missed events),
+        FP: false positives (detections where no event exists),
+        TN: true negatives.
+    
+    Since events are always positive, only positive (rising) threshold crossings are used.
     """
-    # Get threshold crossings in both directions
-    detected_events_pos = crossings(y, theta, dir="negpos")  # Positive threshold crossings
-    detected_events_neg = crossings(y, -theta, dir="posneg")  # Negative threshold crossings
-
-    # Combine positive and negative crossings
-    detected_events = np.sort(np.concatenate((detected_events_pos, detected_events_neg)))
-
-    # Convert detected and true event indices to sets for comparison
+    # Use only positive (rising) threshold crossings
+    detected_events = crossings(y, theta, dir="negpos")
+    
+    # Convert detected and true event indices to sets
     detected_set = set(detected_events)
     true_set = set(si)
-
-    # Compute the four error counts
-    TP = len(true_set & detected_set)  # Events correctly detected
-    FN = len(true_set - detected_set)  # Events missed
-    FP = len(detected_set - true_set)  # False detections (noise crossing threshold)
-    TN = len(y) - (TP + FN + FP)       # Remaining samples are true negatives
-
-    # Return results in a named tuple
+    
+    TP = len(true_set & detected_set)  # correctly detected events
+    FN = len(true_set - detected_set)  # missed events
+    FP = len(detected_set - true_set)  # detections not corresponding to true events
+    TN = len(y) - (TP + FN + FP)        # remaining samples
+    
     DetectionCounts = namedtuple("DetectionCounts", ["TP", "FN", "FP", "TN"])
     return DetectionCounts(TP, FN, FP, TN)
 
 
-def crossings(signal, threshold, dir="both"):
-
-    # Convert signal to a NumPy array
-    signal = np.asarray(signal)
-    
-    # Initialize crossings
-    crossings = []
-
-    # Compute the conditions for each direction
-    if dir == "negpos":
-        # Crossing from below to above or equal
-        crossings = np.where((signal[:-1] < threshold) & (signal[1:] >= threshold))[0] + 1
-    elif dir == "posneg":
-        # Crossing from above or equal to below
-        crossings = np.where((signal[:-1] >= threshold) & (signal[1:] < threshold))[0] + 1
-    elif dir == "both":
-        # Crossing in either direction
-        negpos_crossings = np.where((signal[:-1] < threshold) & (signal[1:] >= threshold))[0] + 1
-        posneg_crossings = np.where((signal[:-1] >= threshold) & (signal[1:] < threshold))[0] + 1
-        crossings = np.sort(np.concatenate((negpos_crossings, posneg_crossings)))
-    else:
-        raise ValueError("Invalid direction. Must be 'negpos', 'posneg', or 'both'.")
-
-    return crossings
-
 def plot_detection_results(N, wave, true_events, threshold):
     """
-    Plots waveform with detected event locations and threshold.
+    Plots the waveform with true event markers and detected event crossings.
+    Only positive threshold crossings are considered.
     """
-    detected_events_pos = crossings(wave, threshold, dir="negpos")
-    detected_events_neg = crossings(wave, -threshold, dir="posneg")
-
+    detected_events = crossings(wave, threshold, dir="negpos")
+    
     plt.figure(figsize=(12, 5))
     plt.plot(wave, label="Waveform", color='b')
-
+    
     # Mark true event locations
     plt.scatter(true_events, wave[true_events], color='red', marker='o', label="True Events")
-
-    # Mark detected crossings
-    plt.scatter(detected_events_pos, wave[detected_events_pos], color='green', marker='x', label="Detected (Positive)")
-    plt.scatter(detected_events_neg, wave[detected_events_neg], color='purple', marker='x', label="Detected (Negative)")
-
-    # Threshold lines
+    
+    # Mark detected crossings (positive threshold crossings only)
+    plt.scatter(detected_events, wave[detected_events], color='green', marker='x', label="Detected Events")
+    
+    # Draw threshold line
     plt.axhline(threshold, color='black', linestyle="dotted")
-    plt.axhline(-threshold, color='black', linestyle="dotted")
-
+    
     plt.xlabel("Time")
     plt.ylabel("Amplitude")
     plt.title("Waveform with True and Detected Events")
@@ -143,53 +141,36 @@ def plot_detection_results(N, wave, true_events, threshold):
     plt.grid()
     plt.show()
 
-import scipy.stats as stats
 
 def falsepos(theta, mu=0, sigma=1, noisetype='Gaussian'):
     """
-    Computes the probability of a false positive: P(FP).
+    Computes the probability of a false positive (P(FP)).
     
-    - theta: float, detection threshold.
-    - mu: float, mean of noise distribution.
-    - sigma: float, standard deviation (Gaussian) or range width (Uniform).
-    - noisetype: str, 'Gaussian' or 'Uniform'.
-    
-    Returns:
-    - Probability of a false positive.
+    A false positive occurs when noise (in the absence of an event) exceeds theta.
     """
     if noisetype == 'Gaussian':
-        return 1 - stats.norm.cdf(theta, loc=mu, scale=sigma)  # P(ε >= θ)
-    
+        return 1 - stats.norm.cdf(theta, loc=mu, scale=sigma)
     elif noisetype == 'Uniform':
         if theta < mu + sigma/2:
             return (mu + sigma/2 - theta) / sigma
         else:
-            return 0  # Outside range of uniform noise
-    
+            return 0
     else:
         raise ValueError("Unsupported noise type. Choose 'Gaussian' or 'Uniform'.")
 
+
 def falseneg(theta, A=1, mu=0, sigma=1, noisetype='Gaussian'):
     """
-    Computes the probability of a false negative: P(FN).
+    Computes the probability of a false negative (P(FN)).
     
-    - θ: float, detection threshold.
-    - A: float, event amplitude.
-    - mu: float, mean of noise distribution.
-    - sigma: float, standard deviation (Gaussian) or range width (Uniform).
-    - noisetype: str, 'Gaussian' or 'Uniform'.
-    
-    Returns:
-    - Probability of a false negative.
+    A false negative occurs when an event (of magnitude A) plus noise fails to reach theta.
     """
     if noisetype == 'Gaussian':
-        return stats.norm.cdf(theta, loc=A + mu, scale=sigma)  # P(A + ε < θ)
-    
+        return stats.norm.cdf(theta, loc=A + mu, scale=sigma)
     elif noisetype == 'Uniform':
         if theta > mu + A - sigma/2:
             return (theta - (mu + A) + sigma/2) / sigma
         else:
-            return 0  # Outside range
-    
+            return 0
     else:
         raise ValueError("Unsupported noise type. Choose 'Gaussian' or 'Uniform'.")
