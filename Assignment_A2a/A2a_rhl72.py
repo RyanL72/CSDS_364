@@ -174,3 +174,52 @@ def falseneg(theta, A=1, mu=0, sigma=1, noisetype='Gaussian'):
             return 0
     else:
         raise ValueError("Unsupported noise type. Choose 'Gaussian' or 'Uniform'.")
+    
+def plotROC(N=100, alpha=0.1, A=1, mu=0, sigma=1, noisetype='Gaussian', thresholds=None):
+    """
+    Generates a waveform and plots the ROC curve by varying the threshold.
+    
+    Parameters:
+    - N: Length of the waveform.
+    - alpha: Event probability at each sample.
+    - A: Magnitude of the event.
+    - mu: Mean of the noise distribution.
+    - sigma: Standard deviation (or spread) of the noise.
+    - noisetype: 'Gaussian' or 'Uniform'.
+    - thresholds: Array of threshold values to evaluate. If None, thresholds are generated automatically.
+    """
+    # Generate waveform and get true event indices
+    wave, true_events = genwaveform(N, alpha, A, mu, sigma, noisetype)
+    
+    # Define a range of thresholds if not provided.
+    if thresholds is None:
+        # Use a range that covers the observed values
+        t_min = np.min(wave)
+        t_max = np.max(wave)
+        thresholds = np.linspace(t_min, t_max, 100)
+    
+    TPR_list = []
+    FPR_list = []
+    
+    # Loop over thresholds to compute detection performance
+    for theta in thresholds:
+        counts = detectioncounts(true_events, wave, theta)
+        TP, FN, FP, TN = counts.TP, counts.FN, counts.FP, counts.TN
+        
+        # Calculate True Positive Rate (Sensitivity) and False Positive Rate
+        TPR = TP / (TP + FN) if (TP + FN) > 0 else 0
+        FPR = FP / (FP + TN) if (FP + TN) > 0 else 0
+        
+        TPR_list.append(TPR)
+        FPR_list.append(FPR)
+    
+    # Plot the ROC curve
+    plt.figure(figsize=(6, 6))
+    plt.plot(FPR_list, TPR_list, marker='o', linestyle='-', label='ROC Curve')
+    plt.plot([0, 1], [0, 1], 'k--', label='Chance')
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Receiver Operating Characteristic (ROC) Curve")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
