@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.io.wavfile import write
 
 def sinewave(t, f=1.0, d=0.0):
     phi = 2 * np.pi * f * d
@@ -95,3 +96,111 @@ def gensignal(t, g, tau=0, T=1, **kwargs):
     return signal
 
 
+def energy(x):
+    """Compute the energy of signal x (sum of squares)."""
+    return np.sum(x**2)
+
+def power(x):
+    """Compute the average power of signal x."""
+    return energy(x) / len(x)
+
+def snr(Ps, Pn):
+    """
+    Compute SNR in decibels given signal power Ps and noise power Pn.
+    SNR (dB) = 10*log10(Ps/Pn)
+    """
+    return 10 * np.log10(Ps / Pn)
+
+def noisysignal(t, g, tau=0, T=1, sigma=0.1, **kwargs):
+    """
+    Generate a signal (using function g with delay tau and duration T) and add Gaussian noise.
+    
+    Parameters:
+      t     : time vector (seconds)
+      g     : signal function
+      tau   : delay (seconds)
+      T     : duration of the signal (seconds)
+      sigma : standard deviation of the Gaussian noise
+      kwargs: additional parameters for g
+      
+    Returns:
+      y(t) = signal + noise
+    """
+    sig = gensignal(t, g, tau, T, **kwargs)
+    noise = np.random.normal(0, sigma, size=t.shape)
+    return sig + noise
+
+def snr2sigma(x, xrange=None, dBsnr=10):
+    """
+    Given a signal x and an optional index range (xrange), compute the noise sigma
+    required so that adding noise with that sigma gives the desired SNR (in dB).
+    
+    Parameters:
+      x      : signal array
+      xrange : indices (e.g., a slice or list) over which to compute the signal's std.
+               Defaults to the whole array.
+      dBsnr  : desired SNR in decibels
+      
+    Returns:
+      sigma : noise standard deviation.
+    """
+    if xrange is None:
+        x_signal = x
+    else:
+        x_signal = x[xrange]
+    signal_std = np.std(x_signal)
+    sigma = signal_std / (10**(dBsnr/20))
+    return sigma
+
+
+def extent(y, theta=0.01):
+    """
+    Returns a tuple (start_index, end_index) corresponding to the indices
+    where |y| first and last exceed theta times the maximum absolute value of y.
+    
+    Parameters:
+      y     : signal array
+      theta : threshold fraction (default 0.01)
+      
+    Returns:
+      (start, end) indices or None if no such indices are found.
+    """
+    thresh = theta * np.max(np.abs(y))
+    indices = np.where(np.abs(y) >= thresh)[0]
+    if len(indices) == 0:
+        return None
+    return indices[0], indices[-1]
+
+def grand_synthesis(duration=5, fs=44100, num_tones=20, T=0.1, fmin=100, fmax=8000):
+    """
+    Synthesize a waveform composed of multiple random gammatone tones.
+    
+    Parameters:
+      duration : total duration of the waveform in seconds.
+      fs       : sampling frequency.
+      num_tones: number of gammatone tones to include.
+      T        : duration of each tone.
+      fmin, fmax: frequency range for the gammatone tones.
+      
+    Returns:
+      t        : time vector.
+      waveform : synthesized waveform (normalized).
+    """
+    t = np.linspace(0, duration, int(fs*duration), endpoint=False)
+    waveform = np.zeros_like(t)
+    
+    for _ in range(num_tones):
+        # Random delay tau: ensure the tone fits inside the overall duration.
+        tau = np.random.uniform(0, duration - T)
+        # Random frequency between fmin and fmax.
+        f = np.random.uniform(fmin, fmax)
+        # (Optional) random amplitude; here we use a fixed amplitude of 1.
+        A = 1.0
+        
+        # Generate the tone using gensignal.
+        tone = gensignal(t, lambda tt: gammatone(tt, f=f, a=A, n=4), tau=tau, T=T)
+        waveform += tone
+    
+    # Normalize the waveform to avoid clipping.
+    waveform = waveform / np.max(np.abs(waveform))
+    return t, waveform
