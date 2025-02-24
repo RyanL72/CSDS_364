@@ -102,7 +102,6 @@ def gammatone_norm(f, n=4, fs=10000):
     
     return norm_L2
 
-import numpy as np
 
 def localmaxima(signal):
     
