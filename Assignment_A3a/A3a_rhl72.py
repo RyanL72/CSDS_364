@@ -61,3 +61,37 @@ def plot_sampled_function(g, fs=1, tlim=(0, 2*np.pi), tscale=1, tunits="secs", *
     plt.show()
 
 
+def delta(t, fs=1):
+    """
+    Discrete delta function.
+    For a continuous time t, if |t| < half the sample period (0.5/fs),
+    we consider it as the impulse sample.
+    """
+    return np.where(np.abs(t) < (0.5 / fs), 1.0, 0.0)
+
+def u(t):
+    """
+    Unit step function (Heaviside step function).
+    Returns 1 for t >= 0, 0 for t < 0.
+    """
+    return np.where(t >= 0, 1.0, 0.0)
+
+
+def gensignal(t, g, tau=0, T=1, **kwargs):
+    """
+    Generate a signal based on function g delayed by tau and lasting for duration T.
+    
+    Parameters:
+      t    : time vector (in seconds)
+      g    : function of time (accepts t and kwargs)
+      tau  : delay (in seconds)
+      T    : duration of the signal (in seconds)
+      kwargs: additional parameters for g
+      
+    Returns:
+      Signal array: g(t-tau) for t in [tau, tau+T), else 0.
+    """
+    signal = np.where((t >= tau) & (t < tau + T), g(t - tau, **kwargs), 0)
+    return signal
+
+
