@@ -90,4 +90,50 @@ def bandpass_noise(t, fs, f_center, sigma, noise_type="gaussian"):
     return filtered
 
 
+def convolve(x, y):
+    """
+    Convolve x and y using the definition (not using np.convolve).
+    Zero-pad signals to handle boundaries.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    N = len(x)
+    M = len(y)
+    result = np.zeros(N + M - 1)
+
+    for n in range(N + M - 1):
+        total = 0
+        for k in range(N):
+            j = n - k
+            if 0 <= j < M:
+                total += x[k] * y[j]
+        result[n] = total
+    return result
+
+
+def autocorr(x, normalize=True):
+    """
+    Compute the auto-correlation of signal x.
+    If normalize=True, divide by value at zero lag.
+    """
+    x = np.asarray(x)
+    result = np.correlate(x, x, mode='full')
     
+    if normalize:
+        result = result / result[len(x) - 1]  # Normalize by peak at zero lag
+    return result
+
+def crosscorr(x, y, normalize=True):
+    """
+    Compute the cross-correlation between x and y.
+    If normalize=True, divide by product of norms.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    result = np.correlate(x, y, mode='full')
+    
+    if normalize:
+        norm = np.linalg.norm(x) * np.linalg.norm(y)
+        if norm != 0:
+            result = result / norm
+    return result
